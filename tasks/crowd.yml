@@ -18,11 +18,6 @@
     - "{{ crowd_application_folder }}"
     - "{{ crowd_data_folder }}"
 
-- name: Set local user home directory
-  user:
-    name: "{{ crowd_user }}"
-    home: "{{ crowd_data_folder }}"
-
 - name: Check for downgrade
   fail: msg="Downgrades are not supported. Please set crowd_version to higher or equal to {{ ansible_local.crowd.version }}. Current value is {{ crowd_version }}"
   when:
@@ -41,6 +36,11 @@
     - ansible_local.crowd.version is defined
     - crowd_version | version_compare(ansible_local.crowd.version, '>')
   notify: restart crowd
+
+- name: Set local user home directory
+  user:
+    name: "{{ crowd_user }}"
+    home: "{{ crowd_data_folder }}"
 
 - name: Download and unpack crowd
   unarchive:
