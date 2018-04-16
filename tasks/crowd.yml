@@ -69,13 +69,10 @@
   notify: restart crowd
 
 - name: Set crowd.home property variable
-  replace:
+  lineinfile:
     dest: "{{ crowd_binary_folder }}/crowd-webapp/WEB-INF/classes/crowd-init.properties"
-    regexp: "{{ item.regexp }}"
-    replace: "{{ item.replace }}"
-  with_items:
-    - regexp: '^crowd.home='
-      replace: 'crowd.home={{ crowd_data_folder }}'
+    regexp: 'crowd.home='
+    replace: 'crowd.home={{ crowd_data_folder }}'
   notify: restart crowd
 
 - name: Set JVM settings
