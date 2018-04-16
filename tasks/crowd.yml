@@ -72,7 +72,9 @@
   lineinfile:
     dest: "{{ crowd_binary_folder }}/crowd-webapp/WEB-INF/classes/crowd-init.properties"
     regexp: 'crowd.home='
-    replace: 'crowd.home={{ crowd_data_folder }}'
+    line: 'crowd.home={{ crowd_data_folder }}'
+    backrefs: yes
+    state: present
   notify: restart crowd
 
 - name: Set JVM settings
