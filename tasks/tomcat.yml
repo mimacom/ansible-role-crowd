@@ -1,0 +1,52 @@
+- name: Install python-lxml for ansible xml module
+  package:
+    name: python-lxml
+
+- name: Set tomcat connector proxyName in server.xml
+  xml:
+    path: "{{ crowd_binary_folder }}/apache-tomcat/conf/server.xml"
+    xpath: /Server/Service/Connector
+    attribute: proxyName
+    value: "{{ crowd_fqdn }}"
+  when: crowd_fqdn is defined
+  notify: restart crowd
+
+- name: Set tomcat connector proxyPort server.xml
+  xml:
+    path: "{{ crowd_binary_folder }}/apache-tomcat/conf/server.xml"
+    xpath: /Server/Service/Connector
+    attribute: proxyPort
+    value: "{{ crowd_port }}"
+  when: crowd_port is defined
+  notify: restart crowd
+
+- name: Set tomcat connector scheme server.xml
+  xml:
+    path: "{{ crowd_binary_folder }}/apache-tomcat/conf/server.xml"
+    xpath: /Server/Service/Connector
+    attribute: scheme
+    value: "https"
+  when:
+    - crowd_https is defined
+    - crowd_https
+  notify: restart crowd
+
+- name: Set Crowd context path to root (server.xml)
+  xml:
+    path: "{{ crowd_binary_folder }}/apache-tomcat/conf/server.xml"
+    xpath: /Server/Service/Engine/Host
+    set_children:
+      - Context:
+          path: ""
+          docBase: "../../crowd-webapp"
+          debug: "0"
+  changed_when: False
+
+- name: Set Crowd context path to root (server.xml)
+  xml:
+    path: "{{ crowd_binary_folder }}/apache-tomcat/conf/server.xml"
+    xpath: /Server/Service/Engine/Host/Context
+    set_children:
+      - Manager:
+          pathname: ""
+  changed_when: False

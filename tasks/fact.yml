@@ -1,0 +1,18 @@
+---
+- name: Ensure ansible facts folder exists
+  file:
+    name: /etc/ansible/facts.d/
+    state: directory
+    recurse: yes
+
+- name: Ensure crowd facts exists
+  file:
+    name: /etc/ansible/facts.d/crowd.fact
+    state: touch
+  changed_when: False
+
+- name: Update crowd facts
+  template:
+    src: crowd.fact.j2
+    dest: /etc/ansible/facts.d/crowd.fact
+  notify: restart crowd

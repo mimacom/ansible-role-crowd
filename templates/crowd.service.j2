@@ -1,0 +1,13 @@
+[Unit]
+Description=Crowd Service
+After=network.target
+
+[Service]
+Type=forking
+User={{ crowd_user }}
+ExecStart={{ crowd_binary_folder }}/apache-tomcat/bin/startup.sh
+ExecStop={{ crowd_binary_folder }}/apache-tomcat/bin/shutdown.sh
+PIDFile={{ crowd_binary_folder }}/apache-tomcat/work/catalina.pid
+
+[Install]
+WantedBy=multi-user.target

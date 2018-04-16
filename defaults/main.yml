@@ -1,0 +1,11 @@
+---
+crowd_version: 3.1.3
+crowd_fqdn: ""
+crowd_https: False
+crowd_port: ""
+crowd_include_jdk: True
+crowd_openjdk_version: 1.8.0
+crowd_user: crowd
+crowd_application_folder: "/opt/atlassian/crowd"
+crowd_data_folder: "/var/atlassian/application-data/crowd"
+crowd_jvm_memory: 1g

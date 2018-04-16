@@ -1,0 +1,117 @@
+---
+- name: Set binary folder
+  set_fact:
+    crowd_binary_folder: "{{ crowd_application_folder }}/atlassian-crowd-{{ crowd_version }}"
+
+- name: Add local user
+  user:
+    name: "{{ crowd_user }}"
+    createhome: no
+
+- name: Create app and data folders
+  file:
+    name: "{{ item }}"
+    state: directory
+    owner: "{{ crowd_user }}"
+    group: "{{ crowd_user }}"
+  with_items:
+    - "{{ crowd_application_folder }}"
+    - "{{ crowd_data_folder }}"
+
+- name: Set local user home directory
+  user:
+    name: "{{ crowd_user }}"
+    home: "{{ crowd_data_folder }}"
+
+- name: Check for downgrade
+  fail: msg="Downgrades are not supported. Please set crowd_version to higher or equal to {{ ansible_local.crowd.version }}. Current value is {{ crowd_version }}"
+  when:
+    - ansible_local is defined
+    - ansible_local.crowd is defined
+    - ansible_local.crowd.version is defined
+    - crowd_version | version_compare(ansible_local.crowd.version, '<')
+
+- name: Stop when upgrade
+  service:
+    name: crowd
+    state: stopped
+  when:
+    - ansible_local is defined
+    - ansible_local.crowd is defined
+    - ansible_local.crowd.version is defined
+    - crowd_version | version_compare(ansible_local.crowd.version, '>')
+  notify: restart crowd
+
+- name: Download and unpack crowd
+  unarchive:
+    src: "https://www.atlassian.com/software/crowd/downloads/binary/atlassian-crowd-{{ crowd_version }}.tar.gz"
+    dest: "{{ crowd_application_folder }}"
+    remote_src: True
+    # keep our modified, newer files instead of overriding from the tarball
+    keep_newer: yes
+    owner: "{{ crowd_user }}"
+    group: "{{ crowd_user }}"
+    creates: "{{ crowd_binary_folder }}"
+  changed_when: False
+
+- name: Include tomcat
+  include_tasks: tomcat.yml
+  when: crowd_fqdn is defined or
+        crowd_port is defined or
+        crowd_https is defined
+
+- name: Install crowd systemd unit script
+  template:
+    src: crowd.service.j2
+    dest: /etc/systemd/system/crowd.service
+    mode: 0744
+  when: ansible_service_mgr == 'systemd'
+  notify: restart crowd
+
+- name: Set crowd.home property variable
+  replace:
+    dest: "{{ crowd_binary_folder }}/crowd-webapp/WEB-INF/classes/crowd-init.properties"
+    regexp: "{{ item.regexp }}"
+    replace: "{{ item.replace }}"
+  with_items:
+    - regexp: '^crowd.home='
+      replace: 'crowd.home={{ crowd_data_folder }}'
+  notify: restart crowd
+
+- name: Set JVM settings
+  replace:
+    dest: "{{ crowd_binary_folder }}/apache-tomcat/bin/setenv.sh"
+    regexp: "{{ item.regexp }}"
+    replace: "{{ item.replace }}"
+  with_items:
+    - regexp: '-Xms[0-9]+[bkmg]'
+      replace: '-Xms{{ crowd_jvm_memory }}'
+    - regexp: '-Xmx[0-9]+[bkmg]'
+      replace: '-Xmx{{ crowd_jvm_memory }}'
+  notify: restart crowd
+
+- name: Set Crowd context path to root (build.properties)
+  lineinfile:
+    dest: "{{ crowd_binary_folder }}/build.properties"
+    regexp: "crowd.url"
+    line: "crowd.url=http://localhost:8095/"
+    backrefs: yes
+    state: present
+  notify: restart crowd
+
+- name: Delete crowd context file
+  file:
+    path: "{{ crowd_binary_folder }}/apache-tomcat/conf/Catalina/localhost/crowd.xml"
+    state: absent
+  changed_when: False
+
+- name: Ensure daemon is reloaded (systemd)
+  systemd:
+    name: crowd
+    daemon_reload: yes
+  when: "ansible_service_mgr == 'systemd'"
+
+- name: Ensure service is started at boot
+  service:
+    name: crowd
+    enabled: yes

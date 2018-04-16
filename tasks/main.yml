@@ -1,0 +1,7 @@
+---
+- include_tasks: jdk-{{ ansible_os_family }}.yml
+  when: crowd_include_jdk
+
+- include_tasks: crowd.yml
+- include_tasks: tomcat.yml
+- include_tasks: fact.yml
