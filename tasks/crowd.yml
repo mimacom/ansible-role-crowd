@@ -6,7 +6,7 @@
 - name: Add local user
   user:
     name: "{{ crowd_user }}"
-    createhome: no
+    home: "{{ crowd_data_folder }}"
 
 - name: Create app and data folders
   file:
@@ -36,11 +36,6 @@
     - ansible_local.crowd.version is defined
     - crowd_version | version_compare(ansible_local.crowd.version, '>')
   notify: restart crowd
-
-- name: Set local user home directory
-  user:
-    name: "{{ crowd_user }}"
-    home: "{{ crowd_data_folder }}"
 
 - name: Download and unpack crowd
   unarchive:
